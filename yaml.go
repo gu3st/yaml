@@ -185,6 +185,10 @@ func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 //                  they were part of the outer struct. For maps, keys must
 //                  not conflict with the yaml keys of other struct fields.
 //
+//     preserve     Preserve the capitalization of the field name. Useful
+//					for YAML where the keys are PascalCased and align nicely with
+//					the field names of the struct.
+//
 // In addition, if the key is "-", the field is ignored.
 //
 // For example:
@@ -296,6 +300,7 @@ type fieldInfo struct {
 	Num       int
 	OmitEmpty bool
 	Flow      bool
+	PreserveCase bool
 	// Id holds the unique field identifier, so we can cheaply
 	// check for field duplicates without maintaining an extra map.
 	Id int
@@ -346,6 +351,8 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					info.Flow = true
 				case "inline":
 					inline = true
+				case "preserve":
+					info.PreserveCase = true
 				default:
 					return nil, errors.New(fmt.Sprintf("Unsupported flag %q in tag %q of type %s", flag, tag, st))
 				}
@@ -391,6 +398,8 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 
 		if tag != "" {
 			info.Key = tag
+		} else if info.PreserveCase {
+			info.Key = field.Name
 		} else {
 			info.Key = strings.ToLower(field.Name)
 		}
